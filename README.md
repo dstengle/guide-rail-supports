@@ -16,8 +16,11 @@ The current design is a parametric OpenSCAD model built for the **Makita 183 mm 
 - **Top bridge**: clamps through the rail's top T-slot with a drop-in M6 T-bolt. It joins
   the base with a blind sliding dovetail on a 16 mm side wing. A 3 mm rear stop sets it flush,
   so the support can go on anywhere along the rail without sliding on from the end.
-- **Stackable shims** (1, 2, 3 and 6 mm): these attach under the base with alignment pins
-  to match other material thicknesses.
+- **Stackable shim kit** (1, 2, 3, 6 and 26 mm): shims attach under the base with three
+  horizontal sliding dovetails, so they stay on when you lift the rail. The 12 mm base plus
+  the 26 mm shim gives 38 mm, the thickness of a 2x4. Each shim has its thickness engraved on it.
+- **Support-free printing**: the base and bridge print on their rear faces, with a teardrop
+  M6 hole. The shims print flat.
 
 ## Usage
 
