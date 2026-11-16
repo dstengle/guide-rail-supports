@@ -43,18 +43,38 @@ the middle). Set the size to match the magnets you have:
 | `magnet_recess`    | Pocket is this much deeper than the magnet                        |
 | `magnet_min_floor` | Least plastic left under a pocket                                 |
 
-Each shim gets the most magnets its thickness allows. Pocket depth is
-`magnet_h + magnet_recess`:
+Pocket depth is `magnet_h + magnet_recess`. Each shim gets the most magnets its
+thickness allows:
 
-- **Room for two pockets** (at least 2 × pocket depth + `magnet_min_floor`): one magnet in
-  each face.
-- **Room for one pocket**: one magnet in the top face. It holds the shim below through the
+- **Room for two pockets**: one magnet in each face.
+- **Room for one pocket**: one magnet in the top face. It holds the shim below through a
   thin floor.
-- **Thinner**: a through-hole. Fill it with magnets as thick as the shim (for example one
-  10×1 mm magnet in the 1 mm shim) and glue them in.
+- **At least as thick as a magnet**: a through-hole, with the magnet glued flush with the
+  top face.
+- **Thinner than a magnet**: a through-hole, with the magnet glued flush with the bottom
+  face. It sticks up out of the top face.
 
-With the defaults (10×2 mm magnets), the 6 mm and 26 mm shims get two pockets, the 3 mm
-shim gets one, and the 1 mm and 2 mm shims get through-holes.
+**Shims thinner than your magnets.** The magnet sticking up out of a thin shim nests into
+a socket under the magnets of the part above, which also stops the thin shim sliding.
+`magnet_socket_depth = "auto"` sizes that socket for the thinnest shim in
+`shim_set_heights`. The base and thicker shims glue their bottom magnets that far up
+inside their pockets: push each magnet to the end of its pocket. If you never use shims
+thinner than your magnets, set `magnet_socket_depth = 0`. Then every magnet sits flush
+and holds a little more strongly.
+
+With the defaults (10×2 mm magnets, 1 mm socket):
+
+| Part         | Magnets                                                      |
+|--------------|--------------------------------------------------------------|
+| Base         | Bottom pocket, magnet pushed to the end, 1 mm socket below   |
+| 26 mm, 6 mm  | Top pocket, plus a bottom pocket with a 1 mm socket below    |
+| 3 mm         | Through-hole, magnet flush with the top, 1 mm socket below   |
+| 2 mm         | Through-hole, magnet flush with both faces                   |
+| 1 mm         | Through-hole, magnet flush with the bottom, 1 mm proud on top |
+
+**Stacking rule:** the part directly above a 1 mm shim must have a socket. That's the
+base or the 3, 6 or 26 mm shim. In practice, put the 1 mm shim straight under the base.
+Two 1 mm shims can't stack directly, and neither can a 2 mm shim on top of a 1 mm one.
 
 **Polarity:** put every magnet in with the **same pole facing down**. Magnets lined up
 the same way always attract, so the shims stack in any order. Mark one pole of your
