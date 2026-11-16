@@ -71,6 +71,8 @@ dt_snap        = true;
 dt_flex_wall   = 1.6;  // Thickness of each springy half where it leaves the post
 dt_flex_len    = 9.0;  // How far the split runs up into the post (longer = softer)
 dt_relief_w    = 1.0;  // Slots that free the springy halves from the rest of the post
+dt_spine       = true; // Solid spine between the springy walls in the post
+dt_spine_gap   = 0.5;  // Gap from the spine to each wall and to the tail
 dt_tail_split_w = 1.0; // Split width inside the tail. The halves can only squeeze
                        // together this far, so it must be enough for the detent
                        // bumps to pass but far less than the dovetail flare, or the
@@ -142,6 +144,11 @@ if (dt_snap && dt_tail_split_w / 2 >= dt_flare - dt_clearance - 0.5)
 if (dt_snap && dt_tail_split_w / 2 < dt_bump_h - dt_clearance)
     echo(str("WARNING: dt_tail_split_w (", dt_tail_split_w, "mm) is too narrow for the detent ",
              "bumps to pass; make it at least ", 2 * (dt_bump_h - dt_clearance), "mm"));
+
+if (dt_snap && dt_spine && dt_spine_gap < dt_bump_h - dt_clearance + 0.1)
+    echo(str("WARNING: dt_spine_gap (", dt_spine_gap, "mm) may not leave the springy walls ",
+             "enough room to flex past the detent bumps; try at least ",
+             dt_bump_h - dt_clearance + 0.1, "mm"));
 
 function sum_to(v, i) = i < 0 ? 0 : v[i] + sum_to(v, i - 1);
 
@@ -416,9 +423,17 @@ module top_bridge() {
             // other long before the tail could squeeze out through the slot neck
             translate([dt_center_x - dt_tail_split_w / 2, -1, dt_tail_bot_z - 1])
                 cube([dt_tail_split_w, support_depth + 2, base_support_height - (dt_tail_bot_z - 1) + 0.01]);
-            // Wide split in the post leaves thin walls that flex easily
-            translate([dt_center_x - dt_kerf_w / 2, -1, base_support_height])
-                cube([dt_kerf_w, support_depth + 2, dt_flex_len]);
+            // Wide split in the post leaves thin walls that flex easily. A solid
+            // spine fills the middle of it, leaving dt_spine_gap to each wall and
+            // to the tail, so the walls can't fold far inward.
+            difference() {
+                translate([dt_center_x - dt_kerf_w / 2, -1, base_support_height])
+                    cube([dt_kerf_w, support_depth + 2, dt_flex_len]);
+                if (dt_spine)
+                    translate([dt_center_x - dt_kerf_w / 2 + dt_spine_gap, -2,
+                               base_support_height + dt_spine_gap])
+                        cube([dt_kerf_w - 2 * dt_spine_gap, support_depth + 4, dt_flex_len]);
+            }
             for (side = [-1, 1]) {
                 translate([dt_center_x + side * (half_w + dt_relief_w / 2) - dt_relief_w / 2,
                            -1, base_support_height])

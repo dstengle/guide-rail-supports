@@ -113,6 +113,7 @@ rearrange the parts, or spread them over more than one plate.
 | `dt_flex_wall` | Thickness of the springy halves: thinner means a softer snap           |
 | `dt_flex_len`  | How far the split runs into the post: longer means a softer snap       |
 | `dt_tail_split_w` | Split width inside the tail (1 mm). It limits how far the halves can squeeze together: too wide and the tail can pull out of the slot, too narrow and the bumps can't pass. OpenSCAD warns about either case. |
+| `dt_spine`, `dt_spine_gap` | Solid spine between the springy walls in the post, with a 0.5 mm gap to each wall and to the tail. It fills the space the walls need to flex, keeps the post stiff and stops the walls folding inward. |
 | `dt_snap`      | Set to `false` for a plain dovetail                                    |
 
 Other key parameters:
