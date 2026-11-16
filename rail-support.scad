@@ -25,17 +25,15 @@ shim_connection  = "magnet"; // [magnet, dovetail]
 connector_inset  = 15.0;     // X distance of the outer magnets/dovetails from each end
 
 // Magnets: all of them go in with the same pole facing down, so any stack attracts.
-magnet_d         = 10.0;  // Diameter of the magnets in the base and thicker shims
-magnet_h         = 2.0;   // Thickness of those magnets
-thin_magnet_d    = 10.0;  // Diameter of the magnets that go through thin shims
+// Every shim's top magnet sticks up magnet_protrude above its top face, and every
+// part has a socket under its bottom magnet that the magnet below nests into.
+// Magnets meet face to face and double as locating pegs.
+magnet_d         = 10.0;  // Magnet diameter
+magnet_h         = 2.0;   // Magnet thickness
+magnet_protrude  = 1.0;   // How far each shim's top magnet sticks up (< magnet_h)
 magnet_fit       = 0.2;   // Added to hole diameter (~0.1 press fit, ~0.3 glue-in)
-magnet_recess    = 0.15;  // Pocket is this much deeper than the magnet
-magnet_min_floor = 0.6;   // Least plastic left under a pocket
-// Shims thinner than magnet_h hold a magnet that sticks up out of their top face.
-// The base and thicker shims get a socket this deep under their bottom magnets so
-// a thin shim's magnet nests into it. "auto" sizes it for the thinnest shim in the
-// kit; set 0 if you don't use shims thinner than your magnets.
-magnet_socket_depth = "auto";
+magnet_recess    = 0.15;  // Sockets are this much deeper than magnet_protrude
+magnet_min_floor = 0.6;   // Least plastic between a socket and a pocket
 
 // Dovetail shims
 shim_dt_neck_w       = 8.0;  // Narrow neck of the shim dovetail (at the shim face)
@@ -121,10 +119,15 @@ shim_slot_min_h = shim_dt_height + shim_dt_clearance + shim_min_roof;
 
 // Magnets
 magnet_pocket_d     = magnet_d + magnet_fit;
-magnet_pocket_depth = magnet_h + magnet_recess;
-magnet_socket       = (magnet_socket_depth == "auto")
-                      ? max(0, magnet_h - min(shim_set_heights))
-                      : magnet_socket_depth;
+magnet_top_depth    = magnet_h - magnet_protrude;      // top pocket: magnet sticks up
+magnet_socket       = magnet_protrude + magnet_recess; // empty space under a bottom magnet
+
+// Shims thinner than a magnet only fit the stack if their magnet sticks up by
+// exactly magnet_protrude
+for (h = shim_set_heights)
+    if (shim_connection == "magnet" && h < magnet_h && abs(magnet_h - h - magnet_protrude) > 0.01)
+        echo(str("WARNING: the ", h, "mm shim's magnet sticks up ", magnet_h - h,
+                 "mm, not magnet_protrude (", magnet_protrude, "mm), so it won't seat in the sockets"));
 
 function sum_to(v, i) = i < 0 ? 0 : v[i] + sum_to(v, i - 1);
 
@@ -252,47 +255,50 @@ module shim_dovetail_slots() {
                 offset(delta = shim_dt_clearance) shim_tail_2d();
 }
 
-// Magnet holes for a shim of height h_val (printed flat). pd = pocket depth,
-// sk = socket depth under the bottom magnet for a thin shim's protruding magnet.
-// A: room for two pockets  -> top pocket, bottom pocket (with socket below it)
-// B: room for one pocket   -> top pocket; socket from below, floor between them
-// C: at least magnet_h     -> through-hole, magnet flush with the top face,
-//                             leaving a socket of h_val - magnet_h underneath
-// D: thinner than a magnet -> through-hole, magnet sticks up out of the top face
+// Magnet holes for a shim of height h_val (printed flat). m = magnet thickness,
+// p = protrusion, tp = top pocket depth, sk = socket under the bottom magnet.
+// A: room for two magnets  -> top pocket, plus socket + bottom pocket
+// B: room for one magnet   -> top pocket; socket from below, floor between them
+// C: at least m thick      -> through-hole; the magnet is glued so it sticks up p,
+//                             leaving the socket underneath
+// D: thinner than m        -> through-hole; magnet flush with the bottom, so
+//                             there's no socket: this shim goes at the bottom
 module shim_magnet_holes(h_val) {
-    pd = magnet_pocket_depth;
+    m  = magnet_h;
+    tp = magnet_top_depth;
     sk = magnet_socket;
     for (x_pos = connector_x) {
         translate([x_pos, support_depth / 2, ang_zero]) {
-            if (h_val >= 2 * pd + sk + magnet_min_floor) {
+            if (h_val >= sk + m + magnet_min_floor + tp) {
                 translate([ang_zero, ang_zero, -0.01])
-                    cylinder(d = magnet_pocket_d, h = pd + sk + 0.01);
-                translate([ang_zero, ang_zero, h_val - pd])
-                    cylinder(d = magnet_pocket_d, h = pd + 0.01);
+                    cylinder(d = magnet_pocket_d, h = sk + m + 0.01);
+                translate([ang_zero, ang_zero, h_val - tp])
+                    cylinder(d = magnet_pocket_d, h = tp + 0.01);
             }
-            if (h_val < 2 * pd + sk + magnet_min_floor &&
-                h_val >= pd + sk + magnet_min_floor) {
-                translate([ang_zero, ang_zero, h_val - pd])
-                    cylinder(d = magnet_pocket_d, h = pd + 0.01);
-                if (sk > 0)
-                    translate([ang_zero, ang_zero, -0.01])
-                        cylinder(d = magnet_pocket_d, h = sk + 0.01);
-            }
-            if (h_val < pd + sk + magnet_min_floor) {
+            if (h_val < sk + m + magnet_min_floor + tp &&
+                h_val >= sk + magnet_min_floor + tp) {
+                translate([ang_zero, ang_zero, h_val - tp])
+                    cylinder(d = magnet_pocket_d, h = tp + 0.01);
                 translate([ang_zero, ang_zero, -0.01])
-                    cylinder(d = (h_val < magnet_h ? thin_magnet_d : magnet_d) + magnet_fit,
-                             h = h_val + 0.02);
+                    cylinder(d = magnet_pocket_d, h = sk + 0.01);
+            }
+            if (h_val < sk + magnet_min_floor + tp) {
+                translate([ang_zero, ang_zero, -0.01])
+                    cylinder(d = magnet_pocket_d, h = h_val + 0.02);
             }
         }
     }
 }
 
-// Protruding magnets of shims thinner than magnet_h (shown in the preview only)
+// How far a shim's top magnet sticks up
+function magnet_stickup(h_val) = (h_val < magnet_h) ? magnet_h - h_val : magnet_protrude;
+
+// Protruding top magnets (shown in the preview only)
 module shim_protruding_magnets(h_val) {
-    if (shim_connection == "magnet" && h_val < magnet_h) {
+    if (shim_connection == "magnet") {
         for (x_pos = connector_x)
-            translate([x_pos, support_depth / 2, ang_zero])
-                cylinder(d = thin_magnet_d, h = magnet_h);
+            translate([x_pos, support_depth / 2, h_val])
+                cylinder(d = magnet_d, h = magnet_stickup(h_val));
     }
 }
 
@@ -332,7 +338,7 @@ module bottom_base() {
         if (shim_connection == "magnet") {
             for (x_pos = connector_x)
                 translate([x_pos, support_depth / 2, -0.01])
-                    teardrop_hole(d = magnet_pocket_d, h = magnet_pocket_depth + magnet_socket + 0.01);
+                    teardrop_hole(d = magnet_pocket_d, h = magnet_socket + magnet_h + 0.01);
         }
 
         // Engraved height label on the front face
@@ -486,7 +492,7 @@ if (part_to_render == "shim") {
     stackable_shim(h_val = single_shim_h);
 }
 if (part_to_render == "assembly_preview") {
-    preview_gap = 2.0; // exploded gap between the base and each shim
+    preview_gap = 2.0 + magnet_h; // exploded gap, leaving room for protruding magnets
     color("SteelBlue") bottom_base();
     color("Orange")    top_bridge();
     for (i = [0 : len(preview_shims) - 1]) {
