@@ -71,6 +71,10 @@ dt_snap        = true;
 dt_flex_wall   = 1.6;  // Thickness of each springy half where it leaves the post
 dt_flex_len    = 9.0;  // How far the split runs up into the post (longer = softer)
 dt_relief_w    = 1.0;  // Slots that free the springy halves from the rest of the post
+dt_tail_split_w = 1.0; // Split width inside the tail. The halves can only squeeze
+                       // together this far, so it must be enough for the detent
+                       // bumps to pass but far less than the dovetail flare, or the
+                       // tail can be pulled out of the slot.
 dt_bump_h      = 0.4;  // Detent bump height on each flank
 dt_preload     = 0.1;  // Bump stays this much compressed when seated (removes play)
 dt_bump_y      = 1.0;  // Bump starts this far behind the tail's front end
@@ -109,7 +113,8 @@ dt_tail_len    = dt_slot_len - 0.3;
 dt_tail_top_z  = base_support_height + dt_lift;
 dt_tail_bot_z  = base_support_height - dt_height + dt_lift;
 dt_tail_w_at_top_face = dt_neck_w + 2 * dt_lift * tan(dt_theta); // at Z = base top
-dt_kerf_w      = dt_tail_w_at_top_face - 2 * dt_flex_wall;
+dt_kerf_w      = dt_tail_w_at_top_face - 2 * dt_flex_wall; // split width in the post
+dt_flare       = (dt_base_w - dt_neck_w) / 2;                // flare per side
 post_z0        = base_support_height + dt_seat_gap;
 
 // Shim dovetails
@@ -128,6 +133,15 @@ for (h = shim_set_heights)
     if (shim_connection == "magnet" && h < magnet_h && abs(magnet_h - h - magnet_protrude) > 0.01)
         echo(str("WARNING: the ", h, "mm shim's magnet sticks up ", magnet_h - h,
                  "mm, not magnet_protrude (", magnet_protrude, "mm), so it won't seat in the sockets"));
+
+// Bridge snap sanity checks
+if (dt_snap && dt_tail_split_w / 2 >= dt_flare - dt_clearance - 0.5)
+    echo(str("WARNING: dt_tail_split_w (", dt_tail_split_w, "mm) lets the tail halves squeeze ",
+             "together far enough to pull out of the slot; keep it well under ",
+             2 * (dt_flare - dt_clearance - 0.5), "mm"));
+if (dt_snap && dt_tail_split_w / 2 < dt_bump_h - dt_clearance)
+    echo(str("WARNING: dt_tail_split_w (", dt_tail_split_w, "mm) is too narrow for the detent ",
+             "bumps to pass; make it at least ", 2 * (dt_bump_h - dt_clearance), "mm"));
 
 function sum_to(v, i) = i < 0 ? 0 : v[i] + sum_to(v, i - 1);
 
@@ -398,8 +412,13 @@ module top_bridge() {
 
         // Split the tail into two springy halves and free them from the post
         if (dt_snap) {
-            translate([dt_center_x - dt_kerf_w / 2, -1, dt_tail_bot_z - 1])
-                cube([dt_kerf_w, support_depth + 2, base_support_height + dt_flex_len - (dt_tail_bot_z - 1)]);
+            // Narrow split inside the tail: the halves bottom out against each
+            // other long before the tail could squeeze out through the slot neck
+            translate([dt_center_x - dt_tail_split_w / 2, -1, dt_tail_bot_z - 1])
+                cube([dt_tail_split_w, support_depth + 2, base_support_height - (dt_tail_bot_z - 1) + 0.01]);
+            // Wide split in the post leaves thin walls that flex easily
+            translate([dt_center_x - dt_kerf_w / 2, -1, base_support_height])
+                cube([dt_kerf_w, support_depth + 2, dt_flex_len]);
             for (side = [-1, 1]) {
                 translate([dt_center_x + side * (half_w + dt_relief_w / 2) - dt_relief_w / 2,
                            -1, base_support_height])
